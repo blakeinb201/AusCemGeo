@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Australian Cemeteries Geolocations</title>
+    <meta charset="utf-8"/>
+	
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.4.0/dist/leaflet.css" integrity="sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA==" crossorigin=""/>
+	<script src="https://unpkg.com/leaflet@1.4.0/dist/leaflet.js" integrity="sha512-QVftwZFqvtRNi0ZyCtsznlKSWOStnDORoefr1enyq5mVL4tmKB3S/EnC3rRJcxCPavG10IcrVGSmPh6Qw5lwrg==" crossorigin=""></script>
+	
+
+</head>
+<body>
+	<div id="map" style="width: 600px; height: 400px"></div>
+	<input type='text' id='searchbox' placeholder='Start typing to search'>
+<script>
+	function loadJSON(callback) {   
+		var JSONfile = new XMLHttpRequest();
+		JSONfile.overrideMimeType("application/json");
+		JSONfile.open('GET', 'auscem.json', true);
+		JSONfile.onreadystatechange = function () {
+			if (JSONfile.readyState == 4 && JSONfile.status == "200") {
+				// Required use of an anonymous callback as .open will NOT return a value but simply returns undefined in asynchronous mode
+				callback(JSONfile.responseText);
+			}
+		};
+		JSONfile.send(null);  
+	}
+
+	
+	function initMap() {
+		// init map
+		var map = L.map('map', {
+			preferCanvas: true
+		}).setView([-24.089357, 133.261536], 4);
+		
+		mapLink = '<a href="http://openstreetmap.org">OpenStreetMap</a>';
+		
+		L.tileLayer(
+			'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+			attribution: '&copy; ' + mapLink + ' Contributors',
+			maxZoom: 18,
+			}
+		).addTo(map);
+		
+		return map;
+	}
+	
+	function createLayer(map) {
+		layer = new L.featureGroup();
+		layer.addTo(map);
+		
+		return layer;
+	}
+		
+	function createMarkers(map, layer, data, query) {
+		var markers = [];
+		
+		layer.clearLayers();
+		
+		for (var i = 0; i < data.length; i++) {
+			var popup = "<b>" + data[i].name + "</b><br>";
+			popup += "Address: " + data[i].address + "<br>";
+			popup += "Latitude: " + data[i].latitude + "<br>";
+			popup += "Longitude: " + data[i].longitude + "<br>";
+			popup += "GPS: " + data[i].GPS + "<br>";
+			
+			if (query == '' || data[i].address.indexOf(query) !== -1) {
+				markers[markers.length] = new L.circleMarker([data[i].latitude, data[i].longitude], { radius: 7 }).bindPopup(popup);
+				
+				markers[markers.length].addTo(layer);
+			}
+		}
+		
+		return markers;
+	}
+	
+	function createMarker(data, query) {
+		var marker = null;
+		
+		var popup = "<b>" + data.name + "</b><br>";
+			popup += "Address: " + data.address + "<br>";
+			popup += "Latitude: " + data.latitude + "<br>";
+			popup += "Longitude: " + data.longitude + "<br>";
+			popup += "GPS: " + data.GPS + "<br>";
+		
+		if (query == '' ||
+			data.address.toUpperCase().indexOf(query) > -1 ||
+			data.name.toUpperCase().indexOf(query) > -1) {
+			marker = new L.circleMarker([data.latitude, data.longitude], { radius: 7 }).bindPopup(popup);
+			
+			//markers[markers.length].addTo(layer);
+		}
+		return marker;
+	}
+	
+	function updateMap(map, layer, data, query) {
+		
+		if (typeof layer !== 'undefined') {
+			layer.clearLayers();
+			//map.removeLayer(layer);
+		}
+		
+		//var markers = createMarkers(map, layer, data, query);
+		
+		layer.clearLayers();
+		
+		for (var i = 0; i < data.length; i++) {
+			var marker = createMarker(data[i], query.toUpperCase());
+			
+			if (marker !== null) {
+				layer.addLayer(marker);
+			}
+		}
+		
+		//layer.addLayer(markers);
+		
+		if (layer.getLayers().length !== 0) {
+			//layer.addTo(map);
+			map.fitBounds(layer.getBounds());
+		}
+	}
+	
+	window.addEventListener('load', function() {
+		
+		var map = initMap();
+		
+		var layer = createLayer(map);
+		
+		
+		//var data = getJSON();
+		
+		var search = document.getElementById('searchbox');
+		
+		var query = search.value;
+		
+		loadJSON(function(response) {
+			// Parse JSON string into object
+			var actual_JSON = JSON.parse(response);
+			
+			updateMap(map, layer, actual_JSON, query);
+			
+			search.addEventListener('input', function() {
+				updateMap(map, layer, actual_JSON, search.value);
+			});
+			/*
+			window.addEventListener("hashchange", function () {
+				updateMap(map, layer, actual_JSON, window.location.hash.substr(1));
+			}, false);*/
+		});
+		
+		//window.addEventListener("hashchange", funcRef, false);
+		//window.location.hash = this.id;
+		//e.preventDefault();
+		//console.log(layer);
+	});
+</script>
+</body>
+</html>
